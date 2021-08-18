@@ -175,3 +175,5 @@ val info : t -> Package.Info.t
     [dune-project] file. *)
 val update_execution_parameters :
   t -> Execution_parameters.t -> Execution_parameters.t
+
+val dune_site_extension : unit Extension.t

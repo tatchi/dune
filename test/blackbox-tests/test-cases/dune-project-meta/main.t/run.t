@@ -517,3 +517,54 @@ the doc dependencies:
     "something"
     "odoc" {with-doc}
   ]
+
+  $ cat > dune-project <<EOF
+  > (lang dune 2.9)
+  > (name foo)
+  > (generate_opam_files true)
+  > (package (name foo))
+  > EOF
+
+  $ dune build foo.opam
+  $ grep -A16 ^build: foo.opam
+  build: [
+    ["dune" "subst"] {dev}
+    [
+      "dune"
+      "build"
+      "-p"
+      name
+      "-j"
+      jobs
+      "--promote-install-files"
+      "false"
+      "@install"
+      "@runtest" {with-test}
+      "@doc" {with-doc}
+    ]
+    ["dune" "install" "-p" name "--create-install-files" name]
+  ]
+
+  $ cat > dune-project <<EOF
+  > (lang dune 3.0)
+  > (name foo)
+  > (generate_opam_files true)
+  > (package (name foo))
+  > EOF
+
+  $ dune build foo.opam
+  $ grep -A15 ^build: foo.opam
+  build: [
+    ["dune" "subst"] {dev}
+    [
+      "dune"
+      "build"
+      "-p"
+      name
+      "-j"
+      jobs
+      "@install"
+      "@runtest" {with-test}
+      "@doc" {with-doc}
+    ]
+  ]

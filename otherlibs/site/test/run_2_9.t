@@ -3,37 +3,26 @@ Test embedding of sites locations information
 
   $ mkdir -p a b c
 
-  $ mkdir -p a
-
-  $ cat >a/dune-project <<EOF
-  > (lang dune 3.0)
-  > (generate_opam_files true)
-  > (using dune_site 0.1)
-  > (name a)
-  > (version 0.a)
-  > (package (name a) (sites (share data)))
-  > EOF
-
-  $ for i in b d; do
+  $ for i in a b d; do
   > mkdir -p $i
   > cat >$i/dune-project <<EOF
-  > (lang dune 3.0)
+  > (lang dune 2.9)
   > (generate_opam_files true)
   > (using dune_site 0.1)
   > (name $i)
   > (version 0.$i)
-  > (package (name $i) (sites (share data)) (depends c))
+  > (package (name $i) (sites (share data)))
   > EOF
   > done
 
   $ for i in c; do
   >   mkdir -p $i
   >   cat >$i/dune-project <<EOF
-  > (lang dune 3.0)
+  > (lang dune 2.9)
   > (generate_opam_files true)
   > (using dune_site 0.1)
   > (name $i)
-  > (package (name $i) (sites (share data) (lib plugins)) (depends a))
+  > (package (name $i) (sites (share data) (lib plugins)))
   > EOF
   > done
 
@@ -149,7 +138,7 @@ Test with an opam like installation
   opam-version: "2.0"
   version: "0.a"
   depends: [
-    "dune" {>= "3.0"}
+    "dune" {>= "2.9"}
     "odoc" {with-doc}
   ]
   build: [
@@ -161,15 +150,16 @@ Test with an opam like installation
       name
       "-j"
       jobs
+      "--promote-install-files"
+      "false"
       "@install"
       "@runtest" {with-test}
       "@doc" {with-doc}
-      "--promote-install-files=false"
     ]
     ["dune" "install" "-p" name "--create-install-files" name]
   ]
 
-  $ dune build -p a --promote-install-files=false @install
+  $ dune build -p a --promote-install-files "false" @install
 
   $ test -e a/a.install
   [1]
@@ -387,7 +377,7 @@ Test %{version:installed-pkg}
   $ for i in f; do
   >   mkdir -p $i
   >   cat >$i/dune-project <<EOF
-  > (lang dune 3.0)
+  > (lang dune 2.9)
   > (using dune_site 0.1)
   > (name $i)
   > (version 0.$i)

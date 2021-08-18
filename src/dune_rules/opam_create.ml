@@ -1,6 +1,11 @@
 open! Dune_engine
 open Stdune
 
+let add_to_opam_list v = function
+  | OpamParserTypes.List (op, l) ->
+    OpamParserTypes.List (op, l @ [ String (op, v) ])
+  | _ -> assert false
+
 let default_build_command =
   let before_1_11 =
     lazy
@@ -57,17 +62,50 @@ let default_build_command =
   [ "dune" "install" "-p" name "--create-install-files" name ]
 ]
 |}))
+  and from_3_0 =
+    let fname = "<internal>" in
+    let parse s = lazy (Opam_file.parse_value (Lexbuf.from_string ~fname s)) in
+    let subst = parse {| [ "dune" "subst" ] {dev} |} in
+    let build =
+      parse
+        {|
+  [ "dune" "build" "-p" name "-j" jobs
+      "@install"
+      "@runtest" {with-test}
+      "@doc" {with-doc}
+  ]
+|}
+    in
+    let local_install =
+      parse {| [ "dune" "install" "-p" name "--create-install-files" name ] |}
+    in
+    fun ~with_sites ->
+      let dumb_pos = (fname, 0, 0) in
+      let build = Lazy.force build in
+      let build =
+        if with_sites then
+          [ add_to_opam_list "--promote-install-files=false" build
+          ; Lazy.force local_install
+          ]
+        else
+          [ build ]
+      in
+      OpamParserTypes.List (dumb_pos, Lazy.force subst :: build)
   in
   fun project ->
-    Lazy.force
-      (if Dune_project.dune_version project < (1, 11) then
-        before_1_11
-      else if Dune_project.dune_version project < (2, 7) then
-        from_1_11_before_2_7
-      else if Dune_project.dune_version project < (2, 9) then
-        from_2_7
-      else
-        from_2_9)
+    if Dune_project.dune_version project < (1, 11) then
+      Lazy.force before_1_11
+    else if Dune_project.dune_version project < (2, 7) then
+      Lazy.force from_1_11_before_2_7
+    else if Dune_project.dune_version project < (2, 9) then
+      Lazy.force from_2_7
+    else if Dune_project.dune_version project < (3, 0) then
+      Lazy.force from_2_9
+    else
+      let is_extension_set ext =
+        Option.is_some (Dune_project.find_extension_args project ext)
+      in
+      from_3_0 ~with_sites:(is_extension_set Dune_project.dune_site_extension)
 
 let package_fields
     { Package.synopsis

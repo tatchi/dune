@@ -293,12 +293,15 @@ module Extension = struct
   let register_deleted ~name ~deleted_in =
     Table.add_exn extensions name (Deleted_in deleted_in)
 
-  let register_simple syntax stanzas =
+  let register_unit syntax stanzas =
     let unit_stanzas =
       let+ r = stanzas in
       ((), r)
     in
-    let (_ : unit t) = register syntax unit_stanzas Unit.to_dyn in
+    register syntax unit_stanzas Unit.to_dyn
+
+  let register_simple syntax stanzas =
+    let (_ : unit t) = register_unit syntax stanzas in
     ()
 
   let instantiate ~dune_lang_ver ~loc ~parse_args (name_loc, name) (ver_loc, ver)
@@ -841,10 +844,10 @@ let executables_implicit_empty_intf t = t.executables_implicit_empty_intf
 
 let accept_alternative_dune_file_name t = t.accept_alternative_dune_file_name
 
-let () =
-  let open Dune_lang.Decoder in
-  Extension.register_simple Action_plugin.syntax (return []);
-  Extension.register_simple Section.dune_site_syntax (return [])
+let () = Extension.register_simple Action_plugin.syntax (return [])
+
+let dune_site_extension =
+  Extension.register_unit Section.dune_site_syntax (return [])
 
 let strict_package_deps t = t.strict_package_deps
 
