@@ -275,17 +275,35 @@ end = struct
               ~f:(Expander.No_deps.expand_str expander)
           in
           let section = i.section in
-          Memo.Build.List.map i.files ~f:(fun unexpanded ->
-              let* fb = path_expander unexpanded in
-              let loc = File_binding.Expanded.src_loc fb in
-              let src = File_binding.Expanded.src fb in
-              let dst = File_binding.Expanded.dst fb in
-              let+ entry =
-                Install.Entry.make_with_site section
-                  (Super_context.get_site_of_packages sctx)
-                  src ?dst
-              in
-              (Some loc, entry))
+          let* files =
+            Memo.Build.List.map i.files ~f:(fun unexpanded ->
+                let* fb = path_expander unexpanded in
+                let loc = File_binding.Expanded.src_loc fb in
+                let src = File_binding.Expanded.src fb in
+                let dst = File_binding.Expanded.dst fb in
+                let+ entry =
+                  Install.Entry.make_with_site section
+                    (Super_context.get_site_of_packages sctx)
+                    src ?dst
+                in
+                (Some loc, entry))
+          in
+          let+ files_from_dirs =
+            Memo.Build.List.concat_map i.dirs ~f:(fun unexpanded ->
+                let* fb = path_expander unexpanded in
+                let loc = File_binding.Expanded.src_loc fb in
+                let src = File_binding.Expanded.src fb in
+                let dst = File_binding.Expanded.dst fb in
+                let* files = Build_system.list_dir_recursively src in
+                Memo.Build.List.map files ~f:(fun file ->
+                    let+ entry =
+                      Install.Entry.make_with_site section
+                        (Super_context.get_site_of_packages sctx)
+                        file ?dst
+                    in
+                    (Some loc, entry)))
+          in
+          files @ files_from_dirs
         | Dune_file.Library lib ->
           let sub_dir = Dune_file.Library.sub_dir lib in
           let* dir_contents = Dir_contents.get sctx ~dir in

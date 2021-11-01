@@ -230,14 +230,15 @@ let gen_rules sctx dir_contents cctxs expander
     { Dir_with_dune.src_dir; ctx_dir; data = stanzas; scope; dune_version = _ }
     =
   let files_to_install
-      { Install_conf.section = _; files; package = _; enabled_if = _ } =
-    Memo.Build.List.map files ~f:(fun fb ->
-        File_binding.Unexpanded.expand_src ~dir:ctx_dir fb
-          ~f:(Expander.No_deps.expand_str expander)
-        >>| Path.build)
-    >>= fun files ->
+      { Install_conf.section = _; files; package = _; enabled_if = _; dirs } =
+    let* files_and_dirs =
+      Memo.Build.List.map (files @ dirs) ~f:(fun fb ->
+          File_binding.Unexpanded.expand_src ~dir:ctx_dir fb
+            ~f:(Expander.No_deps.expand_str expander)
+          >>| Path.build)
+    in
     Rules.Produce.Alias.add_deps (Alias.all ~dir:ctx_dir)
-      (Action_builder.paths files)
+      (Action_builder.paths files_and_dirs)
   in
   let* { For_stanza.merlin = merlins
        ; cctx = cctxs

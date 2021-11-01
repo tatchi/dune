@@ -165,6 +165,8 @@ val alias_exists : Alias.t -> bool Memo.Build.t
 
 val is_target : Path.t -> bool Memo.Build.t
 
+val list_dir_recursively : Path.Build.t -> Path.Build.t list Memo.Build.t
+
 val build_deps : Dep.Set.t -> Dep.Facts.t Memo.Build.t
 
 (** Execute a action. The execution is cached. *)
