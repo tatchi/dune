@@ -24,33 +24,31 @@ let%expect_test _ =
         | list ->
           events_buffer := [];
           Some
-            (List.map list ~f:(function
-              | Dune_file_watcher.Event.Sync -> assert false
+            (List.filter_map list ~f:(function
+              | Dune_file_watcher.Event.Sync -> None
               | Queue_overflow -> assert false
-              | Fs_memo_event e -> e
+              | Fs_memo_event e -> Some e
               | Watcher_terminated -> assert false)))
   in
   let print_events n = print_events ~try_to_get_events ~expected:n in
   Dune_file_watcher.wait_for_initial_watches_established_blocking watcher;
   Stdio.Out_channel.write_all "x" ~data:"x";
   print_events 1;
-  [%expect
-    {|
+  [%expect{|
     { path = In_source_tree "."; kind = "Created" }
+    { path = In_build_dir "."; kind = "Created" }
     { path = In_source_tree "x"; kind = "Unknown" }
-    Got more events than expected: expected 1, saw 2 |}];
+    Got more events than expected: expected 1, saw 3 |}];
   Unix.rename "x" "y";
   print_events 0;
-  [%expect {|
-|}];
+  [%expect{||}];
   let (_ : _) = Fpath.mkdir_p "d/w" in
   Stdio.Out_channel.write_all "d/w/x" ~data:"x";
   print_events 0;
-  [%expect {||}];
+  [%expect{||}];
   Stdio.Out_channel.write_all "d/w/y" ~data:"y";
   print_events 1;
-  [%expect
-    {|
+  [%expect{|
     { path = In_source_tree "x"; kind = "Unknown" }
     { path = In_source_tree "y"; kind = "Unknown" }
     { path = In_source_tree "d"; kind = "Created" }
